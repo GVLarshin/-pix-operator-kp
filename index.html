@@ -84,6 +84,22 @@
       50% { opacity: 0.4; transform: scale(0.85); }
     }
 
+    /* Client Greeting Banner (Показывается персонально, если перешли по ссылке) */
+    .personalized-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
+      border: 1px solid var(--cyan);
+      border-radius: 14px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      text-align: center;
+      color: #e2e8f0;
+      font-size: 15px;
+    }
+    .personalized-banner strong {
+      color: var(--cyan-glow);
+    }
+
     /* Header */
     header {
       text-align: center;
@@ -924,6 +940,11 @@
       <div>1С:Предприятие 8.3 (БСП) • On-Premise / Enterprise</div>
     </div>
 
+    <!-- Персональное приветствие (появляется только если есть параметр в ссылке) -->
+    <div id="personalized-banner" class="personalized-banner">
+      👋 Специальное коммерческое предложение подготовлено для: <strong id="user-recipient-label">клиента</strong>
+    </div>
+
     <!-- Header Section -->
     <header>
       <div class="tag">Интеллектуальная автономность</div>
@@ -1397,6 +1418,66 @@
 
     let currentSelectedTier = "Консультация / Демо";
 
+    // ----------------------------------------------------
+    // ТРЕКИНГ ОТКРЫТИЯ КП И ПЕРЕХОДА ИЗ ПИСЬМА ПО ССЫЛКЕ
+    // ----------------------------------------------------
+    async function trackEmailOpening() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        // Считываем параметры: email (или mail/user), а также компанию (company/org)
+        const clientEmail = urlParams.get('email') || urlParams.get('mail') || urlParams.get('user');
+        const clientCompany = urlParams.get('company') || urlParams.get('org');
+
+        if (clientEmail) {
+          // Если клиент открыл ссылку с почтой, автоматически подставим ее в приветствие и форму
+          const banner = document.getElementById('personalized-banner');
+          const recipientLabel = document.getElementById('user-recipient-label');
+          if (banner && recipientLabel) {
+            recipientLabel.innerText = clientCompany ? `${clientEmail} (${clientCompany})` : clientEmail;
+            banner.style.display = 'block';
+          }
+
+          // Предзаполним телефон/почту и компанию в форме
+          const phoneInput = document.getElementById('m-phone');
+          const compInput = document.getElementById('m-company');
+          if (phoneInput && !phoneInput.value) phoneInput.value = clientEmail;
+          if (compInput && clientCompany && !compInput.value) compInput.value = clientCompany;
+
+          // Проверяем sessionStorage, чтобы не спамить при обновлении F5 той же страницы
+          const sessionKey = 'tracked_' + clientEmail;
+          if (sessionStorage.getItem(sessionKey)) {
+            return;
+          }
+          sessionStorage.setItem(sessionKey, '1');
+
+          // Формируем текст уведомления Георгию о переходе
+          const notifyText = 
+            `👀 <b>КЛИЕНТ ОТКРЫЛ ВАШЕ КП ИЗ ПИСЬМА!</b>\n\n` +
+            `📧 <b>Email:</b> <code>${clientEmail}</code>\n` +
+            (clientCompany ? `🏢 <b>Компания:</b> ${clientCompany}\n` : '') +
+            `🌐 <b>Устройство:</b> ${navigator.userAgent.includes('Mobile') ? '📱 Смартфон' : '💻 Компьютер'}\n` +
+            `🕒 <b>Время открытия:</b> ${new Date().toLocaleString('ru-RU')}\n\n` +
+            `💡 <i>Клиент сейчас изучает коммерческое предложение на сайте. Самое время быть на связи!</i>`;
+
+          // Отправка в фоновом режиме через Telegram Bot API
+          await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: TG_CHAT_ID,
+              text: notifyText,
+              parse_mode: "HTML"
+            })
+          });
+        }
+      } catch (e) {
+        console.warn("Tracking error:", e);
+      }
+    }
+
+    // Запускаем отслеживание сразу при открытии страницы
+    window.addEventListener('DOMContentLoaded', trackEmailOpening);
+
     // 1. База интерактивных ответов терминала
     const terminalDb = {
       debt: {
@@ -1543,7 +1624,6 @@
       btn.innerText = "⏳ Отправка заявки...";
       hideStatusAlert();
 
-      // Красивый текст уведомления в Telegram (HTML разметка)
       const messageHtml = 
         `🔥 <b>НОВАЯ ЗАЯВКА НА PIX OPERATOR</b>\n\n` +
         `📌 <b>Выбранный тариф:</b> ${currentSelectedTier}\n` +
@@ -1578,7 +1658,6 @@
             btn.innerText = "🚀 Отправить заявку Георгию";
           }, 2000);
         } else {
-          // Если бот не запущен пользователем или ошибка токена
           console.error("TG Error:", resData);
           showStatusAlert("⚠️ Не удалось отправить автоматически. Открываем Telegram напрямую...", "error");
           
@@ -1592,7 +1671,6 @@
         }
       } catch (err) {
         console.error("Fetch Error:", err);
-        // Резервный переход, если заблокирован fetch
         const fallbackMsg = encodeURIComponent(`Здравствуйте, Георгий!\nХочу подключить PIX Operator (${currentSelectedTier}).\nИмя: ${name}\nКонтакт: ${phone}\nКомпания: ${company}\nКомментарий: ${comment}`);
         window.open(`https://t.me/Larsh23?text=${fallbackMsg}`, '_blank');
         closeModal();
