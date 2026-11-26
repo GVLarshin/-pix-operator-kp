@@ -84,7 +84,7 @@
       50% { opacity: 0.4; transform: scale(0.85); }
     }
 
-    /* Client Greeting Banner (Показывается персонально, если перешли по ссылке) */
+    /* Client Greeting Banner */
     .personalized-banner {
       display: none;
       background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
@@ -322,7 +322,7 @@
       transform: scale(1.03);
     }
 
-    /* Comparison Table / Old vs New */
+    /* Comparison Table */
     .compare-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -940,7 +940,7 @@
       <div>1С:Предприятие 8.3 (БСП) • On-Premise / Enterprise</div>
     </div>
 
-    <!-- Персональное приветствие (появляется только если есть параметр в ссылке) -->
+    <!-- Персональное приветствие (показывается, если есть email в ссылке) -->
     <div id="personalized-banner" class="personalized-banner">
       👋 Специальное коммерческое предложение подготовлено для: <strong id="user-recipient-label">клиента</strong>
     </div>
@@ -1085,7 +1085,7 @@
       <p style="color: var(--text-muted); font-size: 14px;">Ежедневный автоматический мониторинг платежного календаря и дебиторской задолженности.</p>
       <div class="role-grid">
         <div class="role-metric-item">
-          <div class="role-metric-title">Cash Flow & Ликвидность</div>
+          <div class="role-metric-title">Cash Flow &amp; Ликвидность</div>
           <div style="font-size: 13.5px; color: var(--text-muted);">Своевременный сигнал о зависших платежах и риске дефицита средств до подписания реестра.</div>
         </div>
         <div class="role-metric-item">
@@ -1424,59 +1424,78 @@
     async function trackEmailOpening() {
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        // Считываем параметры: email (или mail/user), а также компанию (company/org)
+        // Считываем email и компанию из URL
         const clientEmail = urlParams.get('email') || urlParams.get('mail') || urlParams.get('user');
         const clientCompany = urlParams.get('company') || urlParams.get('org');
 
-        if (clientEmail) {
-          // Если клиент открыл ссылку с почтой, автоматически подставим ее в приветствие и форму
-          const banner = document.getElementById('personalized-banner');
-          const recipientLabel = document.getElementById('user-recipient-label');
-          if (banner && recipientLabel) {
-            recipientLabel.innerText = clientCompany ? `${clientEmail} (${clientCompany})` : clientEmail;
-            banner.style.display = 'block';
-          }
+        if (!clientEmail) {
+          console.log("Трекинг: параметр email не передан в URL.");
+          return;
+        }
 
-          // Предзаполним телефон/почту и компанию в форме
-          const phoneInput = document.getElementById('m-phone');
-          const compInput = document.getElementById('m-company');
-          if (phoneInput && !phoneInput.value) phoneInput.value = clientEmail;
-          if (compInput && clientCompany && !compInput.value) compInput.value = clientCompany;
+        // Автоматически подставляем данные в плашку приветствия
+        const banner = document.getElementById('personalized-banner');
+        const recipientLabel = document.getElementById('user-recipient-label');
+        if (banner && recipientLabel) {
+          recipientLabel.innerText = clientCompany ? `${clientEmail} (${clientCompany})` : clientEmail;
+          banner.style.display = 'block';
+        }
 
-          // Проверяем sessionStorage, чтобы не спамить при обновлении F5 той же страницы
-          const sessionKey = 'tracked_' + clientEmail;
-          if (sessionStorage.getItem(sessionKey)) {
-            return;
-          }
-          sessionStorage.setItem(sessionKey, '1');
+        // Предзаполняем поля модальной формы
+        const phoneInput = document.getElementById('m-phone');
+        const compInput = document.getElementById('m-company');
+        if (phoneInput && !phoneInput.value) phoneInput.value = clientEmail;
+        if (compInput && clientCompany && !compInput.value) compInput.value = clientCompany;
 
-          // Формируем текст уведомления Георгию о переходе
-          const notifyText = 
-            `👀 <b>КЛИЕНТ ОТКРЫЛ ВАШЕ КП ИЗ ПИСЬМА!</b>\n\n` +
-            `📧 <b>Email:</b> <code>${clientEmail}</code>\n` +
-            (clientCompany ? `🏢 <b>Компания:</b> ${clientCompany}\n` : '') +
-            `🌐 <b>Устройство:</b> ${navigator.userAgent.includes('Mobile') ? '📱 Смартфон' : '💻 Компьютер'}\n` +
-            `🕒 <b>Время открытия:</b> ${new Date().toLocaleString('ru-RU')}\n\n` +
-            `💡 <i>Клиент сейчас изучает коммерческое предложение на сайте. Самое время быть на связи!</i>`;
+        // Защита от спама: отправляем не чаще чем раз в 30 секунд для одной сессии
+        const sessionKey = 'tracked_' + clientEmail;
+        const lastTracked = sessionStorage.getItem(sessionKey);
+        const now = Date.now();
+        if (lastTracked && (now - parseInt(lastTracked, 10)) < 30000) {
+          console.log("Трекинг: уведомление уже было отправлено менее 30 секунд назад.");
+          return;
+        }
 
-          // Отправка в фоновом режиме через Telegram Bot API
-          await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              chat_id: TG_CHAT_ID,
-              text: notifyText,
-              parse_mode: "HTML"
-            })
-          });
+        // Формируем текст уведомления Георгию о переходе
+        const notifyText = 
+          `👀 <b>КЛИЕНТ ОТКРЫЛ ВАШЕ КП ИЗ ПИСЬМА!</b>\n\n` +
+          `📧 <b>Email:</b> <code>${clientEmail}</code>\n` +
+          (clientCompany ? `🏢 <b>Компания:</b> ${clientCompany}\n` : '') +
+          `🌐 <b>Устройство:</b> ${navigator.userAgent.includes('Mobile') ? '📱 Смартфон' : '💻 Компьютер'}\n` +
+          `🕒 <b>Время открытия:</b> ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК)\n\n` +
+          `💡 <i>Клиент сейчас на странице коммерческого предложения. Самое время быть на связи!</i>`;
+
+        console.log("Трекинг: отправка запроса в Telegram...");
+
+        // Отправка в фоновом режиме через Telegram Bot API
+        const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: TG_CHAT_ID,
+            text: notifyText,
+            parse_mode: "HTML"
+          })
+        });
+
+        const data = await response.json();
+        if (data.ok) {
+          console.log("Трекинг: уведомление в Telegram успешно доставлено!", data);
+          sessionStorage.setItem(sessionKey, now.toString());
+        } else {
+          console.error("Трекинг: ошибка Telegram API:", data);
         }
       } catch (e) {
-        console.warn("Tracking error:", e);
+        console.warn("Трекинг: ошибка при выполнении запроса:", e);
       }
     }
 
-    // Запускаем отслеживание сразу при открытии страницы
-    window.addEventListener('DOMContentLoaded', trackEmailOpening);
+    // Запускаем отслеживание: если DOM готов — вызываем сразу, иначе вешаем слушатель
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', trackEmailOpening);
+    } else {
+      trackEmailOpening();
+    }
 
     // 1. База интерактивных ответов терминала
     const terminalDb = {
@@ -1572,7 +1591,7 @@
       }
     }
 
-    // 5. Модальное окно и автоматическая отправка в Telegram
+    // 5. Модальное окно и отправка формы
     function openModal(title) {
       if (title) {
         document.getElementById('modal-title').innerText = title;
@@ -1610,7 +1629,7 @@
       box.style.display = 'none';
     }
 
-    // АВТОМАТИЧЕСКАЯ ОТПРАВКА БОТОМ В ТЕЛЕГРАМ ГЕОРГИЮ
+    // Отправка формы заявки в Telegram
     async function handleFormSubmit(e) {
       e.preventDefault();
 
@@ -1631,7 +1650,7 @@
         `📞 <b>Телефон / TG:</b> ${phone}\n` +
         `🏢 <b>Компания / 1С:</b> ${company}\n` +
         `💬 <b>Комментарий:</b> ${comment}\n\n` +
-        `🕒 <i>Дата и время: ${new Date().toLocaleString('ru-RU')}</i>`;
+        `🕒 <i>Дата и время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК)</i>`;
 
       try {
         const response = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
