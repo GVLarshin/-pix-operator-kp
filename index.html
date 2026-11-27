@@ -84,7 +84,7 @@
       50% { opacity: 0.4; transform: scale(0.85); }
     }
 
-    /* Client Greeting Banner */
+    /* Client Greeting Banner (Показывается персонально, если перешли по ссылке) */
     .personalized-banner {
       display: none;
       background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(139, 92, 246, 0.15));
@@ -322,7 +322,7 @@
       transform: scale(1.03);
     }
 
-    /* Comparison Table */
+    /* Comparison Table / Old vs New */
     .compare-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -940,7 +940,7 @@
       <div>1С:Предприятие 8.3 (БСП) • On-Premise / Enterprise</div>
     </div>
 
-    <!-- Персональное приветствие (показывается, если есть email в ссылке) -->
+    <!-- Персональное приветствие (показывается только если есть параметр в ссылке) -->
     <div id="personalized-banner" class="personalized-banner">
       👋 Специальное коммерческое предложение подготовлено для: <strong id="user-recipient-label">клиента</strong>
     </div>
@@ -1037,7 +1037,7 @@
       </div>
 
       <div class="compare-card new">
-        <div class="compare-title" style="color: var(--emerald);">
+        <div class="compare-title" style="color: var(--emerald);"&gt;
           <span>✅</span> С PIX Operator: «Просто сказать, ЧТО»
         </div>
         <ul class="step-list">
@@ -1156,55 +1156,61 @@
       </div>
     </div>
 
-    <!-- ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР ЭФФЕКТА -->
-    <h2 class="section-title">Интерактивный расчет окупаемости и экономии</h2>
+    <!-- ИНТЕРАКТИВНЫЙ КАЛЬКУЛЯТОР ЭФФЕКТА (ОБНОВЛЕННЫЙ, НА ПРИКЛАДНЫХ БАЗОВЫХ МЕТРИКАХ) -->
+    <h2 class="section-title">Расчет окупаемости на первичных процессах 1С</h2>
     <div class="calc-card">
       <div class="calc-sliders">
+        <!-- Метрика 1: Объем входящих документов -->
         <div class="slider-item">
           <label>
-            <span>Сотрудники, занятые в 1С и с документами:</span>
-            <span class="slider-val" id="disp-users">15 специалистов</span>
+            <span>Входящих документов в месяц (счета, УПД, акты):</span>
+            <span class="slider-val" id="disp-docs">800 документов</span>
           </label>
-          <input type="range" id="input-users" min="3" max="120" value="15" oninput="calculateROI()">
+          <input type="range" id="input-docs" min="200" max="5000" step="100" value="800" oninput="calculateROI()">
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Объем ручной первички, поступающей от поставщиков и подрядчиков</div>
         </div>
 
+        <!-- Метрика 2: Среднее время на ручную обработку 1 документа -->
         <div class="slider-item">
           <label>
-            <span>Средняя ставка сотрудника в месяц (Gross + налоги):</span>
-            <span class="slider-val" id="disp-cost">120 000 ₽</span>
+            <span>Ручная обработка 1 документа (проверка + ввод в 1С):</span>
+            <span class="slider-val" id="disp-time">10 минут</span>
           </label>
-          <input type="range" id="input-cost" min="60000" max="300000" step="10000" value="120000" oninput="calculateROI()">
+          <input type="range" id="input-time" min="3" max="25" step="1" value="10" oninput="calculateROI()">
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Сверка реквизитов, сопоставление номенклатуры и проведение проводки</div>
         </div>
 
+        <!-- Метрика 3: Часовая ставка специалиста -->
         <div class="slider-item">
           <label>
-            <span>Доля рутинных операций (сверки, ввод, отчеты):</span>
-            <span class="slider-val" id="disp-routine">30% времени</span>
+            <span>Стоимость часа работы специалиста (с налогами):</span>
+            <span class="slider-val" id="disp-rate">800 ₽ / час</span>
           </label>
-          <input type="range" id="input-routine" min="15" max="60" step="5" value="30" oninput="calculateROI()">
+          <input type="range" id="input-rate" min="400" max="1800" step="50" value="800" oninput="calculateROI()">
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Исходя из средней зарплаты бухгалтера или оператора 1С (Gross + ФОТ)</div>
         </div>
       </div>
 
       <div class="calc-results-grid">
         <div class="res-box">
-          <div class="res-label">Высвобождаемое время</div>
-          <div class="res-num" id="out-hours">756 ч/мес</div>
-          <div class="res-label">эквивалент эффективных часов</div>
+          <div class="res-label">Трудозатраты на рутину</div>
+          <div class="res-num" id="out-hours">133 ч/мес</div>
+          <div class="res-label">уходит на механический ввод первички</div>
         </div>
         <div class="res-box">
           <div class="res-label">Высвобождаемый ресурс</div>
-          <div class="res-num" id="out-fte">4.5 FTE</div>
-          <div class="res-label">полноценных единиц персонала</div>
+          <div class="res-num" id="out-fte">0.8 FTE</div>
+          <div class="res-label">полноценной рабочей ставки в месяц</div>
         </div>
         <div class="res-box">
-          <div class="res-label">Экономический эффект в год</div>
-          <div class="res-num highlight" id="out-savings">6 480 000 ₽</div>
-          <div class="res-label">прямая выгода для бизнеса</div>
+          <div class="res-label">Экономия ФОТ в год</div>
+          <div class="res-num highlight" id="out-savings">1 280 000 ₽</div>
+          <div class="res-label">прямая экономия рабочего времени</div>
         </div>
         <div class="res-box">
-          <div class="res-label">Срок окупаемости пилота</div>
-          <div class="res-num highlight" id="out-payback">&lt; 2 мес.</div>
-          <div class="res-label">на типовых процессах</div>
+          <div class="res-label">Стоимость пилота (3 мес)</div>
+          <div class="res-num highlight" id="out-payback">9 000 ₽</div>
+          <div class="res-label">на тарифе «Тест драйв» (1 лицензия)</div>
         </div>
       </div>
     </div>
@@ -1566,32 +1572,37 @@
       }
     }
 
-    // 4. Калькулятор окупаемости
+    // 4. Калькулятор окупаемости (ОБНОВЛЕННАЯ ЛОГИКА НА РЕАЛЬНЫХ БАЗОВЫХ МЕТРИКАХ)
     function calculateROI() {
-      const users = parseInt(document.getElementById('input-users').value);
-      const cost = parseInt(document.getElementById('input-cost').value);
-      const routine = parseInt(document.getElementById('input-routine').value);
+      // Базовые понятные параметры
+      const docs = parseInt(document.getElementById('input-docs').value, 10);
+      const minutesPerDoc = parseInt(document.getElementById('input-time').value, 10);
+      const hourlyRate = parseInt(document.getElementById('input-rate').value, 10);
 
-      document.getElementById('disp-users').innerText = users + " специалистов";
-      document.getElementById('disp-cost').innerText = cost.toLocaleString('ru-RU') + " ₽";
-      document.getElementById('disp-routine').innerText = routine + "% времени";
+      // Отображение значений ползунков
+      document.getElementById('disp-docs').innerText = docs.toLocaleString('ru-RU') + " документов";
+      document.getElementById('disp-time').innerText = minutesPerDoc + " минут";
+      document.getElementById('disp-rate').innerText = hourlyRate.toLocaleString('ru-RU') + " ₽ / час";
 
-      const freedHours = Math.round(users * 168 * (routine / 100));
-      const freedFte = (users * (routine / 100)).toFixed(1);
-      const annualSavings = Math.round(users * (routine / 100) * cost * 12);
+      // Расчет:
+      // 1. Часов рутины в месяц на документы
+      const totalHoursMonth = Math.round((docs * minutesPerDoc) / 60);
+      
+      // 2. Доля ставки сотрудника (из расчета 168 рабочих часов в месяц на ставку)
+      const fteEquivalent = (totalHoursMonth / 168).toFixed(1);
 
-      document.getElementById('out-hours').innerText = freedHours.toLocaleString('ru-RU') + " ч/мес";
-      document.getElementById('out-fte').innerText = freedFte + " FTE";
+      // 3. Экономия ФОТ в год (исходя из того, что PIX Operator берет на себя 80% рутины ввода)
+      const automatedHoursMonth = totalHoursMonth * 0.8;
+      const annualSavings = Math.round(automatedHoursMonth * hourlyRate * 12);
+
+      // Вывод результатов
+      document.getElementById('out-hours').innerText = totalHoursMonth.toLocaleString('ru-RU') + " ч/мес";
+      document.getElementById('out-fte').innerText = fteEquivalent + " FTE";
       document.getElementById('out-savings').innerText = annualSavings.toLocaleString('ru-RU') + " ₽";
-
-      if (freedFte >= 3) {
-        document.getElementById('out-payback').innerText = "< 1.5 мес.";
-      } else {
-        document.getElementById('out-payback').innerText = "< 2.5 мес.";
-      }
+      document.getElementById('out-payback').innerText = "9 000 ₽";
     }
 
-    // 5. Модальное окно и отправка формы
+    // 5. Модальное окно и автоматическая отправка в Telegram
     function openModal(title) {
       if (title) {
         document.getElementById('modal-title').innerText = title;
@@ -1629,7 +1640,7 @@
       box.style.display = 'none';
     }
 
-    // Отправка формы заявки в Telegram
+    // АВТОМАТИЧЕСКАЯ ОТПРАВКА БОТОМ В ТЕЛЕГРАМ ГЕОРГИЮ
     async function handleFormSubmit(e) {
       e.preventDefault();
 
